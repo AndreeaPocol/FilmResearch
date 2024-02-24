@@ -4,23 +4,8 @@ from re import sub
 from collections import defaultdict
 import numpy as np
 import csv
+import constants as c
 
-
-fileNames = ["first_omdb_movies.json", "second_omdb_movies.json"]
-filter = False # filter out movies less than 75 minutes long
-includeAllCountries = True
-releasedInCountryOfInterest = []
-genresToConsider = {
-    "Horror": [],
-    "Romance": [],
-    "Comedy": [],
-    "Action": [],
-    "Adventure": [],
-    "Animation": [],
-    "Crime": [],
-    "Drama": [],
-}
-write = True # write data to a CSV
 
 def getWeek(date, month):
     week = ""
@@ -39,9 +24,9 @@ def getWeek(date, month):
 
 def addMoviesToGenreLists(releaseDate, revenue, movieGenres):
     for genre in movieGenres:
-        if genre in genresToConsider.keys():
+        if genre in c.genresToConsider.keys():
             movie = { "ReleaseDate": releaseDate, "Revenue": revenue}
-            genresToConsider[genre].append(movie)
+            c.genresToConsider[genre].append(movie)
 
 
 def presentResults(revenueByReleaseWeek, genre):
@@ -51,18 +36,13 @@ def presentResults(revenueByReleaseWeek, genre):
             )
         )
 
-    if write:
+    if c.write:
         header = ["Release Week", "Box Office Revenue"]
         with open(filename + ".csv", 'w') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(header)
             for releaseWeek, revenues in revenueByReleaseWeek.items():
                 writer.writerow([releaseWeek, np.average(revenues)])
-
-        # with open(filename + ".csv", "w+") as csvfile:
-        #     filewriter = csv.writer(csvfile, delimiter=",")
-        #     filewriter.writerow(header)
-        #     filewriter.writerows(points)
 
 
 def releaseWeekVsRevenue():
@@ -72,7 +52,7 @@ def releaseWeekVsRevenue():
     totalMovies = 0
     revenueByReleaseWeek = defaultdict(list)
 
-    for fileName in fileNames:
+    for fileName in c.fileNames:
         with open(fileName) as f:
             movies = json.load(f)
         for movie in movies.items():
@@ -86,7 +66,7 @@ def releaseWeekVsRevenue():
                 or "Genre" not in movie
             ):
                 continue
-            if filter:
+            if c.filter:
                 if (
                     "Runtime" not in movie 
                     or movie["Runtime"] == "N/A" 
@@ -105,8 +85,8 @@ def releaseWeekVsRevenue():
                 or  type != "movie"
             ):
                 continue
-            if not includeAllCountries:
-                if not releasedInCountryOfInterest(countries):
+            if not c.includeAllCountries:
+                if not c.releasedInCountryOfInterest(countries):
                     continue
             revenue = float(sub(r"[^\d.]", "", boxOffice))
             revenue = arfi.adjustRevenueForInflation(revenue, releaseYear)
