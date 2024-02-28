@@ -29,25 +29,34 @@ def addMoviesToGenreLists(releaseDate, revenue, movieGenres):
             c.genresToConsider[genre].append(movie)
 
 
-def presentResults(revenueByReleaseWeek, genre):
-    filename = (
-            "release_week_vs_box_office_revenue_{genre}_genre".format(
-                genre=genre.lower()
-            )
-        )
-
+def releaseWeekVsRevenueByGenre():
+    filename = "release_week_vs_box_office_revenue_by_genre"
     if c.write:
-        header = ["Release Week", "Box Office Revenue"]
+        header = ["Genre", "Release Month", "Release Week", "Box Office Revenue"]
         with open(filename + ".csv", 'w') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(header)
-            for releaseWeek, revenues in revenueByReleaseWeek.items():
-                writer.writerow([releaseWeek, np.average(revenues)])
+
+    for genre in c.genresToConsider.keys():
+        revenueByReleaseWeekAndGenre = defaultdict(list)
+        movies = c.genresToConsider[genre]
+        for movie in movies:
+            releaseWeek = movie["ReleaseDate"]
+            revenue = movie["Revenue"]
+            revenueByReleaseWeekAndGenre[releaseWeek].append(revenue)
+        print(
+            "Finished processing {numMovies} {genre} movies".format(
+                numMovies=len(movies), genre=genre
+            )
+        )
+
+        with open(filename + ".csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            for releaseWeek, revenues in revenueByReleaseWeekAndGenre.items():
+                writer.writerow([releaseWeek.split(' ')[0], releaseWeek, np.average(revenues), genre])
 
 
 def releaseWeekVsRevenue():
-    # releaseWeeks = []
-    # revenues = []
     numMovies = 0
     totalMovies = 0
     revenueByReleaseWeek = defaultdict(list)
@@ -91,21 +100,27 @@ def releaseWeekVsRevenue():
             revenue = float(sub(r"[^\d.]", "", boxOffice))
             revenue = arfi.adjustRevenueForInflation(revenue, releaseYear)
             releaseDate = releaseDate.split(' ')
-            # revenues.append(revenue)
-            # releaseWeeks.append(getWeek(int(releaseDate[0]), releaseDate[1]))
             week = getWeek(int(releaseDate[0]), releaseDate[1])
             revenueByReleaseWeek[week].append(revenue)
-            # addMoviesToGenreLists(releaseDate, revenue, movieGenres)
-
+            addMoviesToGenreLists(week, revenue, movieGenres)
             numMovies += 1
     print("Processed {numMovies} movies of {totalMovies} total movies".format(numMovies=numMovies, totalMovies=totalMovies))
-    # print(f"releaseWeeks: {releaseWeeks}")
-    # print(f"revenues: {revenues}")
-    presentResults(revenueByReleaseWeek, "all")
+    
+
+    filename = "release_week_vs_box_office_revenue_all_genres"
+    if c.write:
+        header = ["Release Month", "Release Week", "Box Office Revenue"]
+        with open(filename + ".csv", 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(header)
+            for releaseWeek, revenues in revenueByReleaseWeek.items():
+                writer.writerow([releaseWeek.split(' ')[0], releaseWeek, np.average(revenues)])
+
 
 
 def main():
     releaseWeekVsRevenue()
+    # releaseWeekVsRevenueByGenre()
 
 
 if __name__ == "__main__":
